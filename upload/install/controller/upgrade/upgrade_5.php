@@ -338,13 +338,6 @@ class Upgrade5 extends \Opencart\System\Engine\Controller {
 			];
 
 			$missing[] = [
-				'key'        => 'config_2fa_expire',
-				'value'      => 90,
-				'code'       => 'config',
-				'serialized' => 0
-			];
-
-			$missing[] = [
 				'key'        => 'config_password_length',
 				'value'      => 6,
 				'code'       => 'config',
