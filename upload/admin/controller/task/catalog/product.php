@@ -139,19 +139,33 @@ class Product extends \Opencart\System\Engine\Controller {
 			$product_info['manufacturer'] = '';
 		}
 
-
 		// Attributes
+		$attribute_groups = [];
 
+		$this->load->model('catalog/attribute');
 
-		$attribute_groups = $this->model_catalog_product->getAttributes($product_info['product_id']);
+		$results = $this->model_catalog_product->getAttributes($product_info['product_id']);
 
 		foreach ($results as $result) {
+			$attribute_info = $this->model_catalog_attribute->getAttribute($result['attribute_id']);
 
+			if ($attribute_info) {
+				$attribute_groups[$attribute_info['attribute_group_id']][] = $attribute_info + ['description' => $this->model_catalog_attribute->getAttributeDescriptions($result['attribute_id'])];
+			}
+		}
+
+		// Attribute Groups
+		$product_info['attribute_group'] = [];
+
+		foreach ($attribute_groups as $attribute_group_id => $value) {
+			$attribute_group_info = $this->model_catalog_attribute->getAttributeGroup($attribute_group_id);
+
+			if ($attribute_group_info) {
+				$product_info['attribute_group'][] = $attribute_group_info + ['description' => $this->model_catalog_attribute->getDescriptions($attribute_group_info['attribute_group_id'])] + ['attribute' => $value];
+			}
 		}
 
 		$product_info['discounts'] = $this->model_catalog_product->getDiscounts($product_info['product_id']);
-
-
 
 		$directory = DIR_CATALOG . 'view/data/' . parse_url($store_info['url'], PHP_URL_HOST) . '/catalog/';
 		$filename = 'product-' . $product_info['product_id'] . '.json';
@@ -167,9 +181,13 @@ class Product extends \Opencart\System\Engine\Controller {
 		return ['success' => sprintf($this->language->get('text_info'), $store_info['name'], $product_info['name'])];
 	}
 
+	public function category() {
 
 
 
+
+		return ['success' => sprintf($this->language->get('text_info'), $store_info['name'], $product_info['name'])];
+	}
 
 
 	/**
