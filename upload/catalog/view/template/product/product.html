@@ -230,7 +230,7 @@
         </div>
 
         {% if minimum > 1 %}
-          <div class="alert alert-warning"><i class="fa-solid fa-circle-info"></i> {{ text_minimum }}</div>
+          <div class="alert alert-warning"><i class="fa-solid fa-circle-info"></i> {{ text_minimum | replace: '%s', minimum }}</div>
         {% endif %}
       </form>
     </div>
