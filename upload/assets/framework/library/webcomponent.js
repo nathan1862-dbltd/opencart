@@ -77,7 +77,7 @@ export class WebComponent extends HTMLElement {
     }
 
     attributeChangedCallback(name, value_old, value_new) {
-        console.log(`${name} changed from ${value_old} to ${value_new}`);
+        //console.log(`${name} changed from ${value_old} to ${value_new}`);
 
         if (value_old !== null && value_old != value_new) {
             let event = new CustomEvent('[' + name + ']', {
