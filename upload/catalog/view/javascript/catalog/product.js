@@ -14,6 +14,9 @@ const tax = await loader.library('tax');
 // Currency
 const currency = local.has('currency') ? local.get('currency') : config.config_currency;
 
+// Storage
+const stock_status = await loader.storage('localisation/stock_status');
+
 export default class extends Controller {
     async render() {
         let data = {};
@@ -21,56 +24,85 @@ export default class extends Controller {
         console.log('product');
 
         // Product Info
-        let product = await loader.storage('catalog/product-34');
+        let product = await loader.storage('catalog/product-42');
 
         console.log(product);
 
-        if (product.length) {
+        if (product.length && config.config_language in product.description) {
             data.product_id = product.product_id;
+
+            // Images
             data.thumb = product.thumb;
             data.popup = product.popup;
             data.images = product.images;
 
-            if (config.config_language in product.description) {
-                data.heading_title = product.description[config.config_language].name;
-                data.description = product.description[config.config_language].description;
-            }
+            data.heading_title = product.description[config.config_language].name;
+            data.description = product.description[config.config_language].description;
+            data.tag = product.description[config.config_language].tag;
 
+            //data.meta_title
+            //data.meta_description
+            //data.meta_keyword
+
+            // Product Codes
             data.model = product.model;
-
             data.codes = product.code;
 
+            // Manufacturer
             data.manufacturer_id = product.manufacturer_id;
             data.manufacturer = product.manufacturer;
 
-            data.price = product.price;// tax.calculate(product.price)
-            data.special = product.special; //tax.calculate(product.special);
+            // Price
+            data.price = product.price;
+            data.special = product.special;
             data.tax = '';
 
-            if (config.config_tax) {
-                data.tax = product.special ? product.special : product.price;
-            }
+            if (config.config_tax) data.tax = product.special ? product.special : product.price;
 
+            // Stock
             data.quantity = product.quantity;
             data.minimum = product.minimum;
+
+            let stock_status_id = 0;
+
+            if (product.quantity <= 0) {
+                stock_status_id = product.stock_status_id;
+
+                data.stock = false;
+            } else if (!config.config_stock_display) {
+                stock_status_id = config.config_stock_status_id;
+
+                data.stock = true;
+            } else {
+                stock_status_id = 0;
+
+                data.stock = true;
+            }
+
             data.stock_status = product.stock_status;
 
+            // Reward Points
             data.points = product.points;
             data.reward = product.reward;
 
+            // Statistics
             data.sales = product.sales;
             data.rating = product.rating;
 
+            // Weight
             data.weight = product.weight;
             data.weight_class_id = product.weight_class_id;
 
+            // Dimensions
             data.length = product.length;
             data.width = product.width;
             data.height = product.height;
             data.length_class_id = product.length_class_id;
 
+            // Attributes
             data.attributes = product.attribute;
 
+            // Discounts
             data.discounts = [];
 
             //for (let discount of product.discount) {
@@ -80,6 +112,8 @@ export default class extends Controller {
             data.options = product.option;
 
             data.subscription_plans = product.subscription_plans;
+
+            //data.config_review_status
 
             data.currency = currency;
 
@@ -93,9 +127,6 @@ export default class extends Controller {
         subscription.classList.add('d-none');
 
         $('#subscription-description-' + $(element).val()).classList.remove('d-none');
-
-
-
     }
 
     onSubmit(e) {
