@@ -1,5 +1,4 @@
 const IS_NODE = typeof process !== 'undefined' && !!process.versions?.node;
-
 /* OpenCart Twig replacement. Based on Django, Nunjucks template syntax. */
 class CurlyTag {
     static instance = null;
@@ -10,11 +9,44 @@ class CurlyTag {
         this.cache = new Map();
 
         this.handler = {
-            assign: this.handleAssign.bind(this), capture: this.handleCapture.bind(this), endcapture: this.handleEndcapture.bind(this), if: this.handleIf.bind(this), endif: this.handleEndif.bind(this), else: this.handleElse.bind(this), elseif: this.handleElseif.bind(this), unless: this.handleUnless.bind(this), endunless: this.handleEndunless.bind(this), case: this.handleCase.bind(this), endcase: this.handleEndcase.bind(this), when: this.handleWhen.bind(this), for: this.handleFor.bind(this), endfor: this.handleEndfor.bind(this), continue: this.handleContinue.bind(this), break: this.handleBreak.bind(this), cycle: this.handleCycle.bind(this), echo: this.handleEcho.bind(this), include: this.handleInclude.bind(this), filter: this.handleFilter.bind(this), endfilter: this.handleEndfilter.bind(this), raw: this.handleRaw.bind(this), endraw: this.handleEndraw.bind(this), comment: this.handleComment.bind(this), endcomment: this.handleEndcomment.bind(this),
+            assign: this.handleAssign.bind(this),
+            capture: this.handleCapture.bind(this),
+            endcapture: this.handleEndcapture.bind(this),
+            if: this.handleIf.bind(this),
+            endif: this.handleEndif.bind(this),
+            else: this.handleElse.bind(this),
+            elseif: this.handleElseif.bind(this),
+            unless: this.handleUnless.bind(this),
+            endunless: this.handleEndunless.bind(this),
+            case: this.handleCase.bind(this),
+            endcase: this.handleEndcase.bind(this),
+            when: this.handleWhen.bind(this),
+            for: this.handleFor.bind(this),
+            endfor: this.handleEndfor.bind(this),
+            continue: this.handleContinue.bind(this),
+            break: this.handleBreak.bind(this),
+            cycle: this.handleCycle.bind(this),
+            echo: this.handleEcho.bind(this),
+            include: this.handleInclude.bind(this),
+            filter: this.handleFilter.bind(this),
+            endfilter: this.handleEndfilter.bind(this),
+            raw: this.handleRaw.bind(this),
+            endraw: this.handleEndraw.bind(this),
+            comment: this.handleComment.bind(this),
+            endcomment: this.handleEndcomment.bind(this),
         };
 
         this.openclose = {
-            if: ['elseif', 'else', 'endif'], elseif: ['elseif', 'else', 'endif'], else: ['endif', 'endcase', 'endfor', 'endunless'], when: ['when', 'else', 'endcase'], for: ['else', 'endfor'], capture: ['endcapture'], filter: ['endfilter'], raw: ['endraw'], comment: ['endcomment'], unless: ['else', 'endunless'],
+            if: ['elseif', 'else', 'endif'],
+            elseif: ['elseif', 'else', 'endif'],
+            else: ['endif', 'endcase', 'endfor', 'endunless'],
+            when: ['when', 'else', 'endcase'],
+            for: ['else', 'endfor'],
+            capture: ['endcapture'],
+            filter: ['endfilter'],
+            raw: ['endraw'],
+            comment: ['endcomment'],
+            unless: ['else', 'endunless'],
         };
 
         this.filter = {
@@ -28,18 +60,40 @@ class CurlyTag {
             },
             dump: (value) => {
                 return JSON.stringify(value);
-            }, safe: (value) => {
+            },
+            safe: (value) => {
                 return value === null || value === undefined ? '' : value;
-            }, // HTML
+            },
+            // HTML
             e: (value) => {
                 return this.filter.escape(value);
-            }, escape: (value) => {
-                return String(value ?? '').replace(/[&<>"']/g, (m) => ({
-                    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-                })[m] || m,);
-            }, nl2br: (value) => {
+            },
+            escape: (value) => {
+                let callback = {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;'
+                };
+
+                return String(value ?? '').replace(/[&<>"']/g, (m) => (callback)[m] || m,);
+            },
+            escape_once: (value) => {
+                const unescaped = String(value ?? '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+
+                return this.filter.escape(unescaped);
+            },
+            nl2br: (value) => {
                 return String(value).replace(/\n/g, '<br/>');
-            }, striptag: (value) => {
+            },
+            strip_newlines: (value) => {
+                return String(value ?? '').replace(/\r\n|\r|\n/g, '');
+            },
+            normalize_whitespace: (value) => {
+                return String(value ?? '').replace(/\s+/g, ' ').trim();
+            },
+            striptag: (value) => {
                 // Remove all tags, including <style>, <script>, comments, etc.
                 return value
                 .replace(/<\s*script[^>]*>[\s\S]*?<\/script>/gi, '')
@@ -47,7 +101,24 @@ class CurlyTag {
                 .replace(/<!--[\s\S]*?-->/g, '')
                 .replace(/<[^>]*>/g, '')
                 .trim();
-            }, // String
+            },
+            decodeHTMLEntities: (value) => {
+                let element = document.createElement('div');
+
+                let replace = /&(?:#x[a-f0-9]+|#[0-9]+|[a-z0-9]+);?/ig;
+
+                let output = value.replace(replace, (entity) => {
+                    element.innerHTML = entity;
+
+                    return element.textContent;
+                });
+
+                // reset the value
+                element.textContent = '';
+
+                return output;
+            },
+            // String
             capitalize: (value) => {
                 let chars = [...String(value ?? '')];
 
@@ -56,37 +127,127 @@ class CurlyTag {
                 }
 
                 return chars[0].toUpperCase() + chars.slice(1).join('').toLowerCase();
-            }, lower: (value) => {
+            },
+            lower: (value) => {
                 return value.toLowerCase();
-            }, upper: (value) => {
+            },
+            upper: (value) => {
                 return value.toUpperCase();
-            }, replace: (value, search, replace = '') => {
-                return value.replaceAll(search, replace);
-            }, replace_first: (value, search, replace = '') => {
-                return value.replace(search, replace);
-            }, split: (value, separator) => {
+            },
+            replace: (value, search, replace = '') => {
+                const string = String(value ?? '');
+                const searchString = String(search);
+                const replaceString = String(replace);
+
+                if (!searchString) {
+                    return string;
+                }
+
+                return string.split(searchString).join(replaceString);
+            },
+            replace_first: (value, search, replace = '') => {
+                const string = String(value ?? '');
+                const searchString = String(search);
+                const replaceString = String(replace);
+                const index = string.indexOf(searchString);
+
+                if (index === -1) {
+                    return string;
+                }
+
+                return string.slice(0, index) + replaceString + string.slice(index + searchString.length);
+            },
+            replace_last: (value, search, replace = '') => {
+                const string = String(value ?? '');
+                const searchString = String(search);
+                const replaceString = String(replace);
+                const index = string.lastIndexOf(searchString);
+
+                if (index === -1) {
+                    return string;
+                }
+
+                return string.slice(0, index) + replaceString + string.slice(index + searchString.length);
+            },
+            remove: (value, search) => {
+                const string = String(value ?? '');
+                const searchString = String(search);
+
+                if (!searchString) {
+                    return string;
+                }
+
+                return string.split(searchString).join('');
+            },
+            remove_first: (value, search) => {
+                const string = String(value ?? '');
+                const searchString = String(search);
+                const index = string.indexOf(searchString);
+
+                if (index === -1) {
+                    return string;
+                }
+
+                return string.slice(0, index) + string.slice(index + searchString.length);
+            },
+            remove_last: (value, search) => {
+                const string = String(value ?? '');
+                const searchString = String(search);
+                const index = string.lastIndexOf(searchString);
+
+                if (index === -1) {
+                    return string;
+                }
+
+                return string.slice(0, index) + string.slice(index + searchString.length);
+            },
+            split: (value, separator) => {
                 return value.split(separator);
-            }, append: (value, suffix) => {
+            },
+            append: (value, suffix) => {
                 return value + suffix;
-            }, prepend: (value, prefix) => {
+            },
+            prepend: (value, prefix) => {
                 return prefix + value;
-            }, trim: (value) => {
+            },
+            trim: (value) => {
                 return value.trim();
-            }, ltrim: (value) => {
+            },
+            ltrim: (value) => {
                 return value.trimStart();
-            }, rtrim: (value) => {
+            },
+            rtrim: (value) => {
                 return value.trimEnd();
-            }, truncate: (value, length = 255, end = '...') => {
+            },
+            truncate: (value, length = 255, end = '...') => {
                 if (value.length <= length) return value;
 
                 return value.substring(0, length - end.length) + end;
-            }, wordcount: (value) => {
+            },
+            truncatewords: (value, count = 15, end = '...') => {
+                const string = String(value ?? '').trim();
+                const limit = Number(count);
+
+                if (!string || !Number.isFinite(limit) || limit <= 0) {
+                    return '';
+                }
+
+                const words = string.split(/\s+/);
+
+                if (words.length <= limit) {
+                    return string;
+                }
+
+                return words.slice(0, limit).join(' ') + String(end ?? '');
+            },
+            wordcount: (value) => {
                 let string = String(value).trim();
 
                 if (!string) return 0;
 
                 return string.split(/\s+/).length;
-            }, // Array
+            },
+            // Array
             batch: (value, length, fill = null) => {
                 let result = [];
 
@@ -104,54 +265,98 @@ class CurlyTag {
                 }
 
                 return result;
-            }, concat: (value, ...args) => {
+            },
+            concat: (value, ...args) => {
                 return value.concat(...args);
-            }, groupby: (value, type) => {
+            },
+            groupby: (value, type) => {
                 return Object.groupBy(value, (item) => item[type]);
-            }, sort: (value, key = null, direction = 'asc') => {
+            },
+            sort: (value, key = null, direction = 'asc') => {
                 const dir = direction === 'desc' ? -1 : 1;
 
                 return [...value].sort((a, b) => {
                     let va = key ? a?.[key] : a;
                     let vb = key ? b?.[key] : b;
 
-                    return (String(va ?? '')
+                    return (
+                        String(va ?? '')
                         .toLowerCase()
-                        .localeCompare(String(vb ?? '').toLowerCase()) * dir);
+                        .localeCompare(String(vb ?? '').toLowerCase()) * dir
+                    );
                 });
-            }, length: (value) => {
+            },
+            size: (value) => {
                 return Array.isArray(value) || typeof value === 'string' ? value.length : 0;
-            }, offset: (value, offset) => {
+            },
+            // alias for size (Twig compat)
+            length: (value) => {
+                return this.filter.size(value);
+            },
+            offset: (value, offset) => {
                 return value.slice(offset);
-            }, limit: (value, limit) => {
+            },
+            limit: (value, limit) => {
                 return value.slice(0, limit);
-            }, sum: (value, amount = 0) => {
-                return value.reduce((accumulator, currentValue) => accumulator + currentValue, amount,);
-            }, push: (value, item) => {
+            },
+            sum: (value, amount = 0) => {
+                return value.reduce(
+                    (accumulator, currentValue) => accumulator + currentValue,
+                    amount,
+                );
+            },
+            push: (value, item) => {
                 const copy = [...value];
                 copy.push(item);
 
                 return copy;
-            }, pop: (value) => {
+            },
+            pop: (value) => {
                 const copy = [...value];
                 copy.pop();
 
                 return copy;
-            }, shift: (value) => {
+            },
+            shift: (value) => {
                 const copy = [...value];
                 copy.shift();
 
                 return copy;
-            }, unshift: (value, item) => {
+            },
+            unshift: (value, item) => {
                 const copy = [...value];
                 copy.unshift(item);
 
                 return copy;
-            }, slice: (value, start, end) => {
+            },
+            slice: (value, start, end) => {
                 return end !== undefined ? value.slice(start, end) : value.slice(start);
-            }, join: (value, seperator = ' ') => {
+            },
+            join: (value, seperator = ' ') => {
                 return value.join(seperator);
-            }, reverse: (value) => {
+            },
+            array_to_sentence_string: (value, connector = 'and') => {
+                const items = Array.isArray(value)
+                    ? value.map((item) => String(item ?? '')).filter((item) => item !== '')
+                    : [];
+
+                const word = String(connector ?? 'and');
+
+                if (items.length === 0) {
+                    return '';
+                }
+
+                if (items.length === 1) {
+                    return items[0];
+                }
+
+                if (items.length === 2) {
+                    return `${items[0]} ${word} ${items[1]}`;
+                }
+
+                return `${items.slice(0, -1).join(', ')}, ${word} ${items[items.length - 1]}`;
+            },
+            reverse: (value) => {
                 if (Array.isArray(value)) {
                     return [...value].reverse();
                 }
@@ -161,52 +366,96 @@ class CurlyTag {
                 }
 
                 return value; // fallback: return unchanged
-            }, select: (value, key) => {
+            },
+            select: (value, key) => {
                 return value.filter((item) => item[key]);
-            }, reject: (value, key) => {
+            },
+            reject: (value, key) => {
                 return value.filter((item) => !item[key]);
-            }, first: (value) => {
+            },
+            first: (value) => {
                 return value[0] !== undefined ? value[0] : [];
-            }, last: (value) => {
+            },
+            last: (value) => {
                 let last = value.length - 1;
 
                 return value[last] !== undefined ? value[last] : [];
-            }, random: (value) => {
+            },
+            random: (value) => {
                 return value[Math.floor(Math.random() * value.length)];
-            }, compact: (value) => {
+            },
+            compact: (value) => {
                 return value.filter((item) => item != null);
-            }, // Math
+            },
+            uniq: (value) => {
+                return [...new Set(value)];
+            },
+            map: (value, property) => {
+                return value.map((item) => item?.[property]);
+            },
+            // Math
             plus: (value, amount) => {
                 return value + amount;
-            }, minus: (value, amount) => {
+            },
+            minus: (value, amount) => {
                 return value - amount;
-            }, times: (value, amount) => {
+            },
+            times: (value, amount) => {
                 return value * amount;
-            }, divide: (value, amount) => {
+            },
+            divide: (value, amount) => {
                 return value / amount;
-            }, round: (value, decimal = 0) => {
+            },
+            round: (value, decimal = 0) => {
                 return Number(value).toFixed(decimal);
-            }, ceil: (value) => {
+            },
+            ceil: (value) => {
                 return Math.ceil(value);
-            }, floor: (value) => {
+            },
+            floor: (value) => {
                 return Math.floor(value);
-            }, abs: (value) => {
+            },
+            abs: (value) => {
                 return Math.abs(value);
-            }, modulo: (value, amount) => {
+            },
+            modulo: (value, amount) => {
                 return value % amount;
-            }, at_least: (value, minimum) => {
+            },
+            to_integer: (value) => {
+                return parseInt(value, 10);
+            },
+            at_least: (value, minimum) => {
                 const number = Number(value);
 
                 return isNaN(number) ? minimum : Math.max(number, minimum);
-            }, at_most: (value, maximum) => {
+            },
+            at_most: (value, maximum) => {
                 const number = Number(value);
 
                 return isNaN(number) ? maximum : Math.min(number, maximum);
-            }, // URL
+            },
+            // URL
             urlencode: (value) => {
                 return encodeURIComponent(value);
-            }, urldecode: (value) => {
+            },
+            urldecode: (value) => {
                 return decodeURIComponent(value);
+            },
+            base64_encode: (value) => {
+                const bytes = new TextEncoder().encode(String(value ?? ''));
+                const binary = Array.from(bytes, (byte) => String.fromCharCode(byte)).join('');
+
+                return btoa(binary);
+            },
+            base64_decode: (value) => {
+                try {
+                    const binary = atob(String(value ?? ''));
+                    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+
+                    return new TextDecoder().decode(bytes);
+                } catch {
+                    return '';
+                }
             },
         };
     }
@@ -374,7 +623,8 @@ class CurlyTag {
             // Grabs all the Text before the matched index.
             if (match.index > index) {
                 token.push({
-                    type: 'text', raw: template.slice(index, match.index),
+                    type: 'text',
+                    raw: template.slice(index, match.index),
                 });
             }
 
@@ -385,7 +635,7 @@ class CurlyTag {
                     value: output,
                     raw: raw,
                     line: line,
-                    column: index
+                    column: index,
                 });
             }
 
@@ -402,8 +652,12 @@ class CurlyTag {
                     token[top.index].end = token.length;
 
                     let popped = stack.pop();
-                    let closedByElse = command === 'else' && (popped.type === 'for' || popped.type === 'unless');
-                    let closedElseOfLoop = (command === 'endfor' || command === 'endunless') && popped.type === 'else' && popped.forRef !== undefined;
+                    let closedByElse =
+                        command === 'else' && (popped.type === 'for' || popped.type === 'unless');
+                    let closedElseOfLoop =
+                        (command === 'endfor' || command === 'endunless') &&
+                        popped.type === 'else' &&
+                        popped.forRef !== undefined;
 
                     if (closedByElse) {
                         forRef = popped.index;
@@ -415,7 +669,8 @@ class CurlyTag {
                 // Handle Open Tags
                 if (command in this.openclose) {
                     let entry = {
-                        type: command, index: token.length,
+                        type: command,
+                        index: token.length,
                     };
 
                     if (forRef !== undefined) {
@@ -426,7 +681,12 @@ class CurlyTag {
                 }
 
                 token.push({
-                    type: 'tag', tag: command, value: tag, raw: raw, line: line, column: index,
+                    type: 'tag',
+                    tag: command,
+                    value: tag,
+                    raw: raw,
+                    line: line,
+                    column: index,
                 });
             }
 
@@ -437,13 +697,16 @@ class CurlyTag {
         // Grab any remaining template code since the last tag.
         if (index < template.length) {
             token.push({
-                type: 'text', raw: template.slice(index),
+                type: 'text',
+                raw: template.slice(index),
             });
         }
 
         // Warning for unclosed blocks
         if (stack.length) {
-            console.log(`[Template] Warning: ${stack.length} unclosed block(s): ${stack.map((value) => value.type)}`,);
+            console.log(
+                `[Template] Warning: ${stack.length} unclosed block(s): ${stack.map((value) => value.type)}`,
+            );
         }
 
         return token;
@@ -455,7 +718,7 @@ class CurlyTag {
         try {
             let func = new Function('data', `with(data) return (${expression});`);
 
-            return func({...ctx});
+            return func({ ...ctx });
         } catch (error) {
             console.log(`[Template] Warning: Evaluate error '${error}'`);
 
@@ -471,7 +734,10 @@ class CurlyTag {
 
         let result = value;
 
-        let filters = expression.indexOf('|') !== -1 ? expression.split('|').map((value) => value.trim()) : [expression];
+        let filters =
+            expression.indexOf('|') !== -1
+                ? expression.split('|').map((value) => value.trim())
+                : [expression];
 
         for (let filter of filters) {
             let match = filter.match(/^([^:]*):?\s?(.+)?$/);
@@ -551,7 +817,9 @@ class CurlyTag {
         let match = token.value.match(/^assign\s(\w+)\s=\s([^|]+?)\s*(?:\s*\|\s*(.+))?$/);
 
         if (!match) {
-            console.log(`[Template] Invalid 'assign' syntax line ${token.line} column ${token.column}`,);
+            console.log(
+                `[Template] Invalid 'assign' syntax line ${token.line} column ${token.column}`,
+            );
 
             return;
         }
@@ -573,7 +841,9 @@ class CurlyTag {
         let match = token.value.match(/^include\s(.+)$/);
 
         if (!match) {
-            console.warn(`[Template] Invalid 'include' syntax line ${token.line} column ${token.column}`);
+            console.warn(
+                `[Template] Invalid 'include' syntax line ${token.line} column ${token.column}`,
+            );
 
             return;
         }
@@ -581,7 +851,8 @@ class CurlyTag {
         let output = await this.render(match[1], ctx);
 
         stack.push({
-            type: 'output', output: output,
+            type: 'output',
+            output: output,
         });
     }
 
@@ -604,7 +875,8 @@ class CurlyTag {
         }
 
         stack.push({
-            type: 'output', output: value,
+            type: 'output',
+            output: value,
         });
     }
 
@@ -612,7 +884,9 @@ class CurlyTag {
         let match = token.value.match(/^cycle\s(.*)/);
 
         if (!match) {
-            console.warn(`[Template] Invalid 'cycle' syntax line ${token.line} column ${token.column}`,);
+            console.warn(
+                `[Template] Invalid 'cycle' syntax line ${token.line} column ${token.column}`,
+            );
 
             return;
         }
@@ -646,7 +920,7 @@ class CurlyTag {
 
         // Start at index -1 so first increment lands on 0
         if (!ctx._cycle[group]) {
-            ctx._cycle[group] = {index: -1};
+            ctx._cycle[group] = { index: -1 };
         }
 
         const state = ctx._cycle[group];
@@ -654,7 +928,8 @@ class CurlyTag {
         state.index = (state.index + 1) % values.length;
 
         stack.push({
-            type: 'output', output: values[state.index],
+            type: 'output',
+            output: values[state.index],
         });
     }
 
@@ -669,7 +944,7 @@ class CurlyTag {
         if (!match) {
             console.log(`[Template] Invalid 'if' syntax line ${token.line} column ${token.column}`);
 
-            stack.push({type: 'if', active: true});
+            stack.push({ type: 'if', active: true });
 
             return token.end;
         }
@@ -678,7 +953,8 @@ class CurlyTag {
         let active = this.evaluate(match[1], ctx);
 
         stack.push({
-            type: 'if', active: active,
+            type: 'if',
+            active: active,
         });
 
         if (!active) return token.end;
@@ -710,7 +986,9 @@ class CurlyTag {
         let match = token.value.match(/^unless\s(.+)$/);
 
         if (!match) {
-            console.log(`[Template] Invalid 'unless' syntax line ${token.line} column ${token.column}`,);
+            console.log(
+                `[Template] Invalid 'unless' syntax line ${token.line} column ${token.column}`,
+            );
 
             return;
         }
@@ -719,7 +997,8 @@ class CurlyTag {
         let active = !this.evaluate(match[1], ctx);
 
         stack.push({
-            type: 'unless', active: active,
+            type: 'unless',
+            active: active,
         });
 
         if (!active) return token.end;
@@ -729,7 +1008,9 @@ class CurlyTag {
         let top = stack[stack.length - 1];
 
         if (!top || top.type !== 'unless') {
-            console.log(`[Template] Unexpected 'endunless' tag line ${token.line} column ${token.column}`,);
+            console.log(
+                `[Template] Unexpected 'endunless' tag line ${token.line} column ${token.column}`,
+            );
 
             return;
         }
@@ -741,7 +1022,9 @@ class CurlyTag {
         let match = token.value.match(/^elseif\s(.+)$/);
 
         if (!match) {
-            console.log(`[Template] Invalid 'elseif' syntax line ${token.line} column ${token.column}`,);
+            console.log(
+                `[Template] Invalid 'elseif' syntax line ${token.line} column ${token.column}`,
+            );
 
             return;
         }
@@ -749,7 +1032,9 @@ class CurlyTag {
         let top = stack[stack.length - 1];
 
         if (!top || top.type !== 'if') {
-            console.log(`[Template] Unexpected 'elseif' tag line ${token.line} column ${token.column}`,);
+            console.log(
+                `[Template] Unexpected 'elseif' tag line ${token.line} column ${token.column}`,
+            );
 
             return;
         }
@@ -767,8 +1052,16 @@ class CurlyTag {
     handleElse(token, stack, ctx, index) {
         let top = stack[stack.length - 1];
 
-        if (!top || (top.type !== 'if' && top.type !== 'unless' && top.type !== 'case' && top.type !== 'for')) {
-            console.log(`[Template] Unexpected 'else' tag line ${token.line} column ${token.column}`,);
+        if (
+            !top ||
+            (top.type !== 'if' &&
+                top.type !== 'unless' &&
+                top.type !== 'case' &&
+                top.type !== 'for')
+        ) {
+            console.log(
+                `[Template] Unexpected 'else' tag line ${token.line} column ${token.column}`,
+            );
 
             return;
         }
@@ -783,7 +1076,9 @@ class CurlyTag {
         let match = token.value.match(/^for\s(.*)\sin\s([^|]+?)\s*(?:\s*\|\s*(.+))?$/);
 
         if (!match) {
-            console.log(`[Template] Invalid 'for' syntax line ${token.line} column ${token.column}`,);
+            console.log(
+                `[Template] Invalid 'for' syntax line ${token.line} column ${token.column}`,
+            );
 
             return;
         }
@@ -805,7 +1100,14 @@ class CurlyTag {
         let endIndex = token.loopEnd ?? token.end;
 
         stack.push({
-            type: 'for', name: name, items: items, index: -1, start: index + 1, end: endIndex, active: items.length > 0, parent: {...ctx},
+            type: 'for',
+            name: name,
+            items: items,
+            index: -1,
+            start: index + 1,
+            end: endIndex,
+            active: items.length > 0,
+            parent: { ...ctx },
         });
 
         return items.length > 0 ? endIndex : token.end;
@@ -836,7 +1138,7 @@ class CurlyTag {
                 last: top.index === top.items.length - 1,
                 length: top.items.length,
                 rindex: top.items.length - top.index,
-                rindex0: top.items.length - top.index - 1
+                rindex0: top.items.length - top.index - 1,
             };
 
             return top.start;
@@ -894,13 +1196,17 @@ class CurlyTag {
         let match = token.value.match(/^case\s([\w.]+)$/);
 
         if (!match) {
-            console.log(`[Template] Invalid 'case' syntax line ${token.line} column ${token.column}`,);
+            console.log(
+                `[Template] Invalid 'case' syntax line ${token.line} column ${token.column}`,
+            );
 
             return;
         }
 
         stack.push({
-            type: 'case', value: match[1], active: false,
+            type: 'case',
+            value: match[1],
+            active: false,
         });
     }
 
@@ -908,7 +1214,9 @@ class CurlyTag {
         let match = token.value.match(/^when\s(.+)$/);
 
         if (!match) {
-            console.log(`[Template] Invalid 'when' syntax line ${token.line} column ${token.column}`,);
+            console.log(
+                `[Template] Invalid 'when' syntax line ${token.line} column ${token.column}`,
+            );
 
             return;
         }
@@ -916,7 +1224,9 @@ class CurlyTag {
         let top = stack[stack.length - 1];
 
         if (!top || top.type !== 'case') {
-            console.log(`[Template] Unexpected 'when' tag line ${token.line} column ${token.column}`,);
+            console.log(
+                `[Template] Unexpected 'when' tag line ${token.line} column ${token.column}`,
+            );
 
             return;
         }
@@ -931,7 +1241,9 @@ class CurlyTag {
         let top = stack[stack.length - 1];
 
         if (!top || top.type !== 'case') {
-            console.log(`[Template] Unexpected 'case' tag line ${token.line} column ${token.column}`,);
+            console.log(
+                `[Template] Unexpected 'case' tag line ${token.line} column ${token.column}`,
+            );
 
             return;
         }
@@ -943,13 +1255,17 @@ class CurlyTag {
         let match = token.value.match(/^capture\s(.+)$/);
 
         if (!match) {
-            console.warn(`[Template] Invalid 'capture' syntax line ${token.line} column ${token.column}`,);
+            console.warn(
+                `[Template] Invalid 'capture' syntax line ${token.line} column ${token.column}`,
+            );
 
             return;
         }
 
         stack.push({
-            type: 'capture', name: match[1], value: '',
+            type: 'capture',
+            name: match[1],
+            value: '',
         });
     }
 
@@ -957,7 +1273,9 @@ class CurlyTag {
         let top = stack[stack.length - 1];
 
         if (!top || top.type !== 'capture') {
-            console.log(`[Template] Unexpected 'endcapture' tag line ${token.line} column ${token.column}`,);
+            console.log(
+                `[Template] Unexpected 'endcapture' tag line ${token.line} column ${token.column}`,
+            );
 
             return;
         }
@@ -969,7 +1287,8 @@ class CurlyTag {
 
     handleRaw(token, stack, ctx, index) {
         stack.push({
-            type: 'raw', end: token.end,
+            type: 'raw',
+            end: token.end,
         });
     }
 
@@ -977,7 +1296,9 @@ class CurlyTag {
         let top = stack[stack.length - 1];
 
         if (!top || top.type !== 'raw') {
-            console.log(`[Template] Unexpected 'raw' tag line ${token.line} column ${token.column}`);
+            console.log(
+                `[Template] Unexpected 'raw' tag line ${token.line} column ${token.column}`,
+            );
 
             return;
         }
@@ -986,7 +1307,7 @@ class CurlyTag {
     }
 
     handleComment(token, stack, ctx, index) {
-        stack.push({type: 'comment'});
+        stack.push({ type: 'comment' });
 
         return token.end;
     }
@@ -995,7 +1316,9 @@ class CurlyTag {
         let top = stack[stack.length - 1];
 
         if (!top || top.type !== 'comment') {
-            console.log(`[Template] Unexpected 'comment' tag line ${token.line} column ${token.column}`,);
+            console.log(
+                `[Template] Unexpected 'comment' tag line ${token.line} column ${token.column}`,
+            );
 
             return;
         }
@@ -1007,13 +1330,17 @@ class CurlyTag {
         let match = token.value.match(/^filter\s(\w+)$/);
 
         if (!match) {
-            console.log(`[Template] Invalid 'filter' syntax line ${token.line} column ${token.column}`,);
+            console.log(
+                `[Template] Invalid 'filter' syntax line ${token.line} column ${token.column}`,
+            );
 
             return;
         }
 
         stack.push({
-            type: 'capture', filter: match[1], value: '',
+            type: 'capture',
+            filter: match[1],
+            value: '',
         });
     }
 
@@ -1021,7 +1348,9 @@ class CurlyTag {
         let top = stack[stack.length - 1];
 
         if (!top || top.type !== 'capture') {
-            console.log(`[Template] Unexpected 'endfilter' tag line ${token.line} column ${token.column}`,);
+            console.log(
+                `[Template] Unexpected 'endfilter' tag line ${token.line} column ${token.column}`,
+            );
 
             return;
         }
@@ -1029,7 +1358,8 @@ class CurlyTag {
         stack.pop();
 
         stack.push({
-            type: 'output', output: this.parseFilter(top.value, top.filter, ctx),
+            type: 'output',
+            output: this.parseFilter(top.value, top.filter, ctx),
         });
     }
 
@@ -1044,4 +1374,4 @@ class CurlyTag {
 
 const template = CurlyTag.getInstance();
 
-export {template};
+export { template };
