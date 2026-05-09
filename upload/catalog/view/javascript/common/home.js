@@ -10,8 +10,6 @@ export default class extends Controller {
     onClick(e) {
         e.preventDefault();
 
-        console.log('works');
-
         let target = document.getElementById(e.target.getAttribute('data-target'));
 
         if (target.matches('x-include')) {
