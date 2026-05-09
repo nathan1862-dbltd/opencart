@@ -20,11 +20,11 @@
   {% endif %}
 
   <div class="col-sm">
-    <h1>{{ heading_title }}</h1>
+    <h1>{{ heading_title | urldecode }}</h1>
 
     <ul class="list-unstyled mb-1">
       {% if manufacturer %}
-        <li>{{ text_manufacturer }}: <strong><a href="{{ manufacturers }}">{{ manufacturer }}</a></strong></li>
+        <li>{{ text_manufacturer }}: <strong><a href="catalog/manufacturer/manufacturer-{{ manufacturer_id }}">{{ manufacturer }}</a></strong></li>
       {% endif %}
 
       <li>{{ text_model }}: <strong>{{ model }}</strong></li>
@@ -54,7 +54,7 @@
     {% if price %}
       <ul class="list-unstyled">
 
-        {% if not special %}
+        {% if !special %}
           <li><h2><span class="price-new"><x-currency code="{{ currency }}" amount="{{ price }}"></x-currency></span></h2></li>
         {% else %}
           <li><span class="price-old"><x-currency code="{{ currency }}" amount="{{ price }}"></x-currency></span></li>
@@ -248,11 +248,12 @@
 <div class="tab-content">
 
   <div id="tab-description" class="tab-pane fade show active mb-4">
-    {{ description }}
+    {{ description | decodeHTMLEntities }}
+
     {% if tags %}
-      <p>{{ text_tags }}
+    <p><strong>{{ text_tags }}</strong>
         {% for tag in tags %}
-          <a href="{{ tag.href }}">{{ tag.tag }}</a>{% if not loop.last %},{% endif %}
+          <a href="{{ tag }}">{{ tag }}</a>{% if !loop.last %},{% endif %}
         {% endfor %}
       </p>
     {% endif %}
