@@ -36,17 +36,19 @@ export default class extends Controller {
             data.popup = product.popup;
             data.images = product.images;
 
-            data.heading_title = product.description[config.config_language].name;
-            data.description = product.description[config.config_language].description;
-            data.tag = product.description[config.config_language].tag;
+            let description = product.description[config.config_language];
 
-            //data.meta_title
-            //data.meta_description
-            //data.meta_keyword
+            //description.meta_title
+            //description.meta_description
+            //description.meta_keyword
+
+            data.heading_title = description.name;
+            data.description = description.description;
+            data.tags = description.tag.split(',');
 
             // Product Codes
             data.model = product.model;
-            data.codes = product.code;
+            data.product_codes = product.product_codes;
 
             // Manufacturer
             data.manufacturer_id = product.manufacturer_id;
@@ -100,20 +102,16 @@ export default class extends Controller {
             data.length_class_id = product.length_class_id;
 
             // Attributes
-            data.attributes = product.attribute;
+            data.attribute_groups = product.attribute_group;
 
             // Discounts
-            data.discounts = [];
-
-            //for (let discount of product.discount) {
-            //  data.discounts = [];
-            //}
+            data.discounts = product.discount;
 
             data.options = product.option;
 
             data.subscription_plans = product.subscription_plans;
 
-            //data.config_review_status
+            data.review_status = config.config_review_status;
 
             data.currency = currency;
 
