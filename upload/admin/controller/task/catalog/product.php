@@ -118,13 +118,14 @@ class Product extends \Opencart\System\Engine\Controller {
 			}
 		}
 
-		$product_info['product_codes'] = [];
+		// Product Codes
+		$product_info['product_code'] = [];
 
 		$results = $this->model_catalog_product->getCodes($product_info['product_id']);
 
 		foreach ($results as $result) {
 			if ($result['status']) {
-				$product_info['product_codes'][] = $result;
+				$product_info['product_code'][] = $result;
 			}
 		}
 
@@ -165,7 +166,7 @@ class Product extends \Opencart\System\Engine\Controller {
 			}
 		}
 
-		$product_info['discounts'] = $this->model_catalog_product->getDiscounts($product_info['product_id']);
+		$product_info['discount'] = $this->model_catalog_product->getDiscounts($product_info['product_id']);
 
 		$directory = DIR_CATALOG . 'view/data/' . parse_url($store_info['url'], PHP_URL_HOST) . '/catalog/';
 		$filename = 'product-' . $product_info['product_id'] . '.json';
