@@ -1,6 +1,6 @@
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/thebertg/op.thebizportwebs.online/
+    - export DEPLOYPATH=/home/thebertg/opencart/
 
     - /bin/mkdir -p $DEPLOYPATH
 
